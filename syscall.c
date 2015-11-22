@@ -88,6 +88,7 @@ extern int sys_getpid(void);
 extern int sys_kill(void);
 extern int sys_link(void);
 extern int sys_mkdir(void);
+extern int sys_mkfifo(void);
 extern int sys_mknod(void);
 extern int sys_open(void);
 extern int sys_pipe(void);
@@ -120,6 +121,7 @@ static int (*syscalls[])(void) = {
 [SYS_unlink]  sys_unlink,
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
+[SYS_mkfifo]   sys_mkfifo,
 [SYS_close]   sys_close,
 };
 

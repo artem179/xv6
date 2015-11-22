@@ -16,6 +16,9 @@ struct inode {
   int ref;            // Reference count
   int flags;          // I_BUSY, I_VALID
 
+  struct file *rd;
+  struct file *wr;
+
   short type;         // copy of disk inode
   short major;
   short minor;
