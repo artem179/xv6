@@ -312,14 +312,14 @@ sys_open(void)
       return -1;
     }
     ilock(ip);
-    if(ip->type == T_DIR && omode != O_RDONLY){
+    if(ip->type == T_DIR &&( (omode != O_RDONLY) && (omode != O_NONBLOCK) ) ){
       iunlockput(ip);
       end_op();
       return -1;
     }
   }
 
-  if(ip->type == T_FIFO) {
+   if(ip->type == T_FIFO) {
     if((ip->rd == 0) && (ip->wr == 0)) {
         if(pipealloc(&(ip->rd), &(ip->wr)) < 0 ) {
             end_op();
@@ -328,27 +328,8 @@ sys_open(void)
             ip->rd->pipe->readopen = 0;
             ip->rd->pipe->writeopen = 0;
         }
-    }
-    if(omode & O_RDONLY) {
-        int fd = fdalloc(ip->rd);
-        ip->rd->pipe->readopen++;
-        if(ip->rd->pipe->writeopen == ip->rd->pipe->readopen) {
-            // wkeup sleep
-        } else {
-            return fd;
-        }
-    }
-    if(omode & O_WRONLY) {
-        int fd = fdalloc(ip->rd);
-        ip->rd->pipe->writeopen++;
-        if(ip->rd->pipe->writeopen == ip->rd->pipe->readopen) {
-            // wkeup sleep
-        } else {
-            return fd;
-        }
-    }
-  }
-
+    } 
+   }
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -358,7 +339,45 @@ sys_open(void)
   }
   iunlock(ip);
   end_op();
+  
 
+  if(omode & O_NONBLOCK) {
+    goto PASS;
+  }
+  if(ip->type == T_FIFO ) {
+    if(omode & O_WRONLY) {
+        acquire(&(ip->wr->pipe)->lock);
+        wakeup(ip->rd);
+        ip->wr->pipe->writeopen++;
+        f->pipe = ip->wr->pipe;
+        if(ip->wr->pipe->readopen == 0) {
+          sleep(ip->wr, &(ip->wr->pipe)->lock);
+        }
+        f->type = FD_PIPE;
+        f->ip = ip;
+        f->off = 0;
+        f->readable = 0;
+        f->writable = 1;
+        release(&(ip->wr->pipe)->lock);
+        return fd;
+    } else {
+        acquire(&(ip->rd->pipe)->lock);
+        wakeup(ip->wr);
+        ip->rd->pipe->readopen++;
+        f->pipe = ip->rd->pipe;
+        if(ip->rd->pipe->writeopen == 0) {
+          sleep(ip->rd, &(ip->rd->pipe)->lock);
+        }
+        f->type = FD_PIPE;
+        f->ip = ip;
+        f->off = 0;
+        f->readable = 1;
+        f->writable = 0;
+        release(&(ip->rd->pipe)->lock);
+        return fd;
+    }
+  }
+PASS:
   f->type = FD_INODE;
   f->ip = ip;
   f->off = 0;
