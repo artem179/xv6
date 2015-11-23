@@ -13,6 +13,7 @@
 #include "fs.h"
 #include "file.h"
 #include "fcntl.h"
+#include "pipe.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -54,7 +55,7 @@ sys_dup(void)
 {
   struct file *f;
   int fd;
-  
+
   if(argfd(0, 0, &f) < 0)
     return -1;
   if((fd=fdalloc(f)) < 0)
@@ -92,7 +93,7 @@ sys_close(void)
 {
   int fd;
   struct file *f;
-  
+
   if(argfd(0, &fd, &f) < 0)
     return -1;
   proc->ofile[fd] = 0;
@@ -105,7 +106,7 @@ sys_fstat(void)
 {
   struct file *f;
   struct stat *st;
-  
+
   if(argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0)
     return -1;
   return filestat(f, st);
@@ -259,6 +260,8 @@ create(char *path, short type, short major, short minor)
     panic("create: ialloc");
 
   ilock(ip);
+  ip->rd = 0;
+  ip->wr = 0;
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
@@ -294,10 +297,14 @@ sys_open(void)
   begin_op();
 
   if(omode & O_CREATE){
-    ip = create(path, T_FILE, 0, 0);
-    if(ip == 0){
-      end_op();
-      return -1;
+    if((ip = namei(path)) == 0) {
+        ip = create(path, T_FILE, 0, 0);
+        if(ip == 0){
+            end_op();
+            return -1;
+        }
+    } else {
+        ilock(ip);
     }
   } else {
     if((ip = namei(path)) == 0){
@@ -305,13 +312,24 @@ sys_open(void)
       return -1;
     }
     ilock(ip);
-    if(ip->type == T_DIR && omode != O_RDONLY){
+    if(ip->type == T_DIR &&( (omode != O_RDONLY) && (omode != O_NONBLOCK) ) ){
       iunlockput(ip);
       end_op();
       return -1;
     }
   }
 
+   if(ip->type == T_FIFO) {
+    if((ip->rd == 0) && (ip->wr == 0)) {
+        if(pipealloc(&(ip->rd), &(ip->wr)) < 0 ) {
+            end_op();
+            return -1;
+        } else {
+            ip->rd->pipe->readopen = 0;
+            ip->rd->pipe->writeopen = 0;
+        }
+    } 
+   }
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -321,7 +339,45 @@ sys_open(void)
   }
   iunlock(ip);
   end_op();
+  
 
+  if(omode & O_NONBLOCK) {
+    goto PASS;
+  }
+  if(ip->type == T_FIFO ) {
+    if(omode & O_WRONLY) {
+        acquire(&(ip->wr->pipe)->lock);
+        wakeup(ip->rd);
+        ip->wr->pipe->writeopen++;
+        f->pipe = ip->wr->pipe;
+        if(ip->wr->pipe->readopen == 0) {
+          sleep(ip->wr, &(ip->wr->pipe)->lock);
+        }
+        f->type = FD_PIPE;
+        f->ip = ip;
+        f->off = 0;
+        f->readable = 0;
+        f->writable = 1;
+        release(&(ip->wr->pipe)->lock);
+        return fd;
+    } else {
+        acquire(&(ip->rd->pipe)->lock);
+        wakeup(ip->wr);
+        ip->rd->pipe->readopen++;
+        f->pipe = ip->rd->pipe;
+        if(ip->rd->pipe->writeopen == 0) {
+          sleep(ip->rd, &(ip->rd->pipe)->lock);
+        }
+        f->type = FD_PIPE;
+        f->ip = ip;
+        f->off = 0;
+        f->readable = 1;
+        f->writable = 0;
+        release(&(ip->rd->pipe)->lock);
+        return fd;
+    }
+  }
+PASS:
   f->type = FD_INODE;
   f->ip = ip;
   f->off = 0;
@@ -346,6 +402,20 @@ sys_mkdir(void)
   return 0;
 }
 
+int sys_mkfifo(void) {
+  char *path;
+  struct inode *ip;
+
+  begin_op();
+  if(argstr(0, &path) < 0 || (ip = create(path, T_FIFO, 0, 0)) == 0){
+    end_op();
+    return -1;
+  }
+  iunlockput(ip);
+  end_op();
+  return 0;
+}
+
 int
 sys_mknod(void)
 {
@@ -353,7 +423,7 @@ sys_mknod(void)
   char *path;
   int len;
   int major, minor;
-  
+
   begin_op();
   if((len=argstr(0, &path)) < 0 ||
      argint(1, &major) < 0 ||
