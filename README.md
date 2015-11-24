@@ -73,11 +73,11 @@ zombie!
 ```   
 *************************************
 ##The list of tasks for the last deadline
-*To add file system permissions (without group of users), to realize enter to the system by password (hash), safe change user password.
-+To realize virtual catalogue (`/proc`).
-*To realize mechanism unreliable signals.
+* To add file system permissions (without group of users), to realize enter to the system by password (hash), safe change user password.
++ To realize virtual catalogue (`/proc`).
+* To realize mechanism unreliable signals.
 ----------------------------------------------------------------------------- 
-+I realxv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
++ I realxv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
 Version 6 (v6).  xv6 loosely follows the structure and style of v6,
 but is implemented for a modern x86-based multiprocessor using ANSI C.
 
