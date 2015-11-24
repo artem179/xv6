@@ -14,33 +14,33 @@ National Research University Higher School of Economics, Faculty of computer sci
 ---------------------------------------------------
 ## The list of tasks which i did
 *I realized an expansion of system call `exec()`. Now it supports executing script files and link to script file. Also i added a check on depth of recursion, in order to interrupt the program if depth of recursion will become too big.(when there aren't enough memory for correct system work).
-Some examples of working system call 'exec()':
-'''
+Some examples of working system call `exec()`:
+```
 $ cat > 1
 #!cat
 Jhon
 $ 1
 #!cat
 Jhon
-'''
+```
 
-'''
+```
 $ cat > 2
 #!echo file
 what?
 $ 2
 file 2
-'''
+```
 
-'''
+```
 $ cat > 2
 #!echo file
 what?
 $ 2
 file 2
-'''
+```
 
-'''
+```
 $ cat > 3
 #!4
 $ cat > 4
@@ -50,9 +50,9 @@ $ 3
 #!cat
 Hello
 #!4
-'''
+```
 
-'''
+```
 $ cat > 3
 #!4
 $ cat > 4
@@ -61,7 +61,7 @@ $ 3
 exec 3 failed
 $ 4
 exec 4 failed
-'''
+```
 
 *************************************
 +I real
