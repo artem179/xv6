@@ -8,6 +8,7 @@
 #include "fs.h"
 #include "file.h"
 #include "spinlock.h"
+#include "stat.h"
 
 struct devsw devsw[NDEV];
 struct {
@@ -64,13 +65,24 @@ fileclose(struct file *f)
     release(&ftable.lock);
     return;
   }
+
+//  if(f->ip->type == T_FIFO) {
+//    f->ip->wr = 0;
+//    f->ip->rd = 0;
+//  }
+  
   ff = *f;
   f->ref = 0;
   f->type = FD_NONE;
   release(&ftable.lock);
   
-  if(ff.type == FD_PIPE)
+  if(ff.type == FD_PIPE) {
     pipeclose(ff.pipe, ff.writable);
+    begin_op();
+    if(ff.ip != 0)
+      iput(ff.ip);
+    end_op();
+  }
   else if(ff.type == FD_INODE){
     begin_op();
     iput(ff.ip);

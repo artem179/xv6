@@ -21,3 +21,5 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_mkfifo 22
+#define SYS_up     23
+#define SYS_down   24
