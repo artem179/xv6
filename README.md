@@ -91,7 +91,7 @@ $ wc < NamedPipe
 zombie!
 1 2 7
 ```
-+ I implemented system calls `up()` and `down()` for binary semaphore. I made 10 mutexs, which can take only two states: up and down. Also I created test for checking mutex work ( [[`Testsem.c` | Testsem.c]] ).
++ I implemented system calls `up()` and `down()` for binary semaphore. I made 10 mutexs, which can take only two states: up and down. Also I created test for checking mutex work `Testsem.c`.
 Some examples of working mutex:
 ```
 $ Testsem
