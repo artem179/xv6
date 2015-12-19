@@ -12,7 +12,72 @@ National Research University Higher School of Economics, Faculty of computer sci
 * To renew the file `README.md`. Add new information about chosen tasks from the list ["Final Estimation"][id] with more detailed description. 
 [id]: http://wiki.cs.hse.ru/%D0%9A%D0%A1:2015:%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82:xv6#.D0.98.D1.82.D0.BE.D0.B3.D0.BE.D0.B2.D0.B0.D1.8F_.D0.BE.D1.86.D0.B5.D0.BD.D0.BA.D0.B0
 ---------------------------------------------------
-xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
+## The list of tasks which i did
+* I implemented an expansion of system call `exec()`. Now it supports executing script files and link to script file. Also i added a check on depth of recursion, in order to interrupt the program if depth of recursion will become too big.(when there aren't enough memory for correct system work).
+Some examples of working system call `exec()`:
+```
+$ cat > 1
+#!cat
+Jhon
+$ 1
+#!cat
+Jhon
+```
+
+```
+$ cat > 2
+#!echo file
+what?
+$ 2
+file 2
+```
+
+```
+$ cat > 2
+#!echo file
+what?
+$ 2
+file 2
+```
+
+```
+$ cat > 3
+#!4
+$ cat > 4
+#!cat
+Hello
+$ 3
+#!cat
+Hello
+#!4
+```
+
+```
+$ cat > 3
+#!4
+$ cat > 4
+#!3
+$ 3
+exec 3 failed
+$ 4
+exec 4 failed
+```
++ I implemented system call `mkfifo()`. For it I used xv6-unnamed-pipe. I added new type of file like a FIFO and also added a block, which will work till the opponent connects to another end of pipe. I fixed a bug, which occured when user wrote command `ls` (for example) after created FIFO file. Just added one more flag named NONBLOCK and `if()` which passed 'FIFO-part of code'.
+Some examples of working system call `mkfifo()`:
+```
+$ mkfifo NamedPipe
+$ echo Hi all > NamedPipe &
+$ wc < NamedPipe
+zombie!
+1 2 7
+```   
+*************************************
+##The list of tasks for the last deadline
+* To add file system permissions (without group of users), to implement enter to the system by password (hash), safe change user password.
++ To implement virtual catalogue (`/proc`).
+* To implement mechanism unreliable signals.
+----------------------------------------------------------------------------- 
++I realxv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
 Version 6 (v6).  xv6 loosely follows the structure and style of v6,
 but is implemented for a modern x86-based multiprocessor using ANSI C.
 
