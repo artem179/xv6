@@ -14,6 +14,22 @@ sys_fork(void)
 }
 
 int
+sys_up(void)
+{
+  int n;
+  argint(0, &n);
+  return up(n);
+}
+
+int
+sys_down(void)
+{
+  int n;
+  argint(0, &n);
+  return down(n);
+}
+
+int
 sys_exit(void)
 {
   exit();

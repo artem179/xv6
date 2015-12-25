@@ -7,6 +7,10 @@
 #include "proc.h"
 #include "spinlock.h"
 
+static struct spinlock mut[10];
+static int mutex[10] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+static int pid_proc[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -166,6 +170,42 @@ fork(void)
   return pid;
 }
 
+int up(int nsema) {
+  acquire(&mut[nsema]);
+  if (mutex[nsema] == 0) {
+    if (pid_proc[nsema] == proc->pid) {
+      ++mutex[nsema];
+      pid_proc[nsema] = -1;
+      wakeup(&mut[nsema]);
+    } else {
+      sleep(&mut[nsema], &mut[nsema]);
+    }
+  } else {
+    if (pid_proc[nsema] != proc->pid) {
+      sleep(&mut[nsema], &mut[nsema]);
+    }
+  }
+  release(&mut[nsema]);
+  return 0;
+}
+
+int down(int nsema) {
+  acquire(&mut[nsema]);
+  one_more_time:
+  if (mutex[nsema] == 1) {
+    --mutex[nsema];
+    pid_proc[nsema] = proc->pid;
+  } else {
+    if (pid_proc[nsema] != proc->pid) {
+      sleep(&mut[nsema], &mut[nsema]);
+      goto one_more_time;
+    }
+  }
+  release(&mut[nsema]);
+  return 0;
+}
+
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
@@ -174,6 +214,14 @@ exit(void)
 {
   struct proc *p;
   int fd;
+
+  // Mutex close
+  int check;
+  for(check = 0; check < 10; ++check) {
+    if(pid_proc[check] == proc->pid) {
+	up(check);
+    }
+  } 	
 
   if(proc == initproc)
     panic("init exiting");

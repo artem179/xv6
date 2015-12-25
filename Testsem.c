@@ -11,7 +11,6 @@ main() {
     down(0);
     for (i = 0; i < 100; ++i)
       printf(1, "1 %d\n", i);
-    up(0);
     exit();
   }
   pid = fork();

@@ -15,9 +15,6 @@
 #include "fcntl.h"
 #include "pipe.h" 
 
-static struct spinlock mut[10];
-static int mutex[10] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-static int pid_proc[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -420,44 +417,6 @@ int sys_mkfifo(void) {
   return 0;
 }
 
-int sys_up(void) {
-  int nsema;
-  argint(0, &nsema);
-  acquire(&mut[nsema]);
-  if (mutex[nsema] == 0) {
-    if (pid_proc[nsema] == proc->pid) {
-      ++mutex[nsema];
-      pid_proc[nsema] = -1;
-      wakeup(&mut[nsema]);
-    } else {
-      sleep(&mut[nsema], &mut[nsema]);
-    }
-  } else {
-    if (pid_proc[nsema] != proc->pid) {
-      sleep(&mut[nsema], &mut[nsema]);
-    }
-  }
-  release(&mut[nsema]);
-  return 0;
-}
-
-int sys_down(void) {
-  int nsema;
-  argint(0, &nsema);
-  acquire(&mut[nsema]);
-  one_more_time:
-  if (mutex[nsema] == 1) {
-    --mutex[nsema];
-    pid_proc[nsema] = proc->pid;
-  } else {
-    if (pid_proc[nsema] != proc->pid) {
-      sleep(&mut[nsema], &mut[nsema]);
-      goto one_more_time;
-    }
-  }
-  release(&mut[nsema]);
-  return 0;
-}
 
 int
 sys_mknod(void)
