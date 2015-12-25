@@ -78,7 +78,7 @@ zombie!
 * To implement mechanism unreliable signals.
 ----------------------------------------------------------------------------- 
 ##DEADLINE
-* I fixed bug in mkfifo, now it works correct.
+* I fixed bug in mkfifo (remained a pointer to a remote pipe) , now it works correct (Fixed by adding iput).
 Some examples of working system call `mkfifo()`:
 ```
 $ mkfifo NamedPipe
@@ -91,7 +91,7 @@ $ wc < NamedPipe
 zombie!
 1 2 7
 ```
-+ I implemented system calls `up()` and `down()` for binary semaphore. I made 10 mutexs, which can take only two states: up and down. Also I created test for checking mutex work `Testsem.c`.
++ I implemented system calls `up()` and `down()` for binary semaphore. I made 10 mutexs, which can take only two states: up and down. Also I created test for checking mutex work `Testsem.c` (atomic working). And added automatic lifting of the semaphore after the completion process. (in `exit()`)
 Some examples of working mutex:
 ```
 $ Testsem
